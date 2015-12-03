@@ -16,6 +16,10 @@ class BaseResource(Resource):
     def current_user(self):
         return current_user._get_current_object()
 
+    @property
+    def current_org(self):
+        return self.current_user.org
+
     def dispatch_request(self, *args, **kwargs):
         with statsd_client.timer('requests.{}.{}'.format(request.endpoint, request.method.lower())):
             response = super(BaseResource, self).dispatch_request(*args, **kwargs)
