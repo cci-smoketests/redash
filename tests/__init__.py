@@ -8,6 +8,7 @@ import logging
 from unittest import TestCase
 import datetime
 from redash import settings
+from factories import Factory
 
 settings.DATABASE_CONFIG = {
     'name': 'circle_test',
@@ -22,7 +23,7 @@ logging.getLogger('peewee').setLevel(logging.INFO)
 class BaseTestCase(TestCase):
     def setUp(self):
         models.create_db(True, True)
-        models.init_db()
+        self.factory = Factory()
 
     def tearDown(self):
         models.db.close_db(None)
