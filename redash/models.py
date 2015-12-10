@@ -70,11 +70,6 @@ class BaseModel(peewee.Model):
     def get_by_id(cls, model_id):
         return cls.get(cls.id == model_id)
 
-    @classmethod
-    def get_by_id_and_org(cls, org, model_id):
-        # TODO(@arikfr): put this method in a BelongToOrgMixin?
-        return cls.get(cls.id==model_id, cls.org==org)
-
     def pre_save(self, created):
         pass
 
@@ -201,6 +196,9 @@ class User(ModelTimestampsMixin, BaseModel, UserMixin, PermissionsCheckMixin):
     class Meta:
         db_table = 'users'
 
+    def __init__(self, *args, **kwargs):
+        super(User, self).__init__(*args, **kwargs)
+
     def to_dict(self, with_api_key=False):
         d = {
             'id': self.id,
@@ -221,9 +219,6 @@ class User(ModelTimestampsMixin, BaseModel, UserMixin, PermissionsCheckMixin):
             d['api_key'] = self.api_key
 
         return d
-
-    def __init__(self, *args, **kwargs):
-        super(User, self).__init__(*args, **kwargs)
 
     def pre_save(self, created):
         super(User, self).pre_save(created)
@@ -293,6 +288,10 @@ class DataSource(BaseModel):
 
     def __unicode__(self):
         return self.name
+
+    @classmethod
+    def get_by_id_and_org(cls, org, model_id):
+        return cls.get(cls.id==model_id, cls.org==org)
 
     @property
     def configuration(self):
@@ -922,8 +921,7 @@ def create_db(create_tables, drop_tables):
 
     for model in all_models:
         if drop_tables and model.table_exists():
-            # TODO: submit PR to peewee to allow passing cascade option to drop_table.
-            db.database.execute_sql('DROP TABLE %s CASCADE' % model._meta.db_table)
+            model.drop_table(cascade=True)
 
         if create_tables and not model.table_exists():
             model.create_table()
