@@ -106,6 +106,12 @@ class ModelTimestampsMixin(BaseModel):
         self.updated_at = datetime.datetime.now()
 
 
+class BelongsToOrgMixin(object):
+    @classmethod
+    def get_by_id_and_org(cls, object_id, org):
+        return cls.get(cls.id == object_id, cls.org == org)
+
+
 class PermissionsCheckMixin(object):
     def has_permission(self, permission):
         return self.has_permissions((permission,))
@@ -179,12 +185,8 @@ class Group(BaseModel):
     def __unicode__(self):
         return unicode(self.id)
 
-    @classmethod
-    def get_by_name(cls, name):
-        return cls.get(cls.name == name)
 
-
-class User(ModelTimestampsMixin, BaseModel, UserMixin, PermissionsCheckMixin):
+class User(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin, UserMixin, PermissionsCheckMixin):
     id = peewee.PrimaryKeyField()
     org = peewee.ForeignKeyField(Organization, related_name="users")
     name = peewee.CharField(max_length=320)
@@ -245,6 +247,10 @@ class User(ModelTimestampsMixin, BaseModel, UserMixin, PermissionsCheckMixin):
     def get_by_api_key(cls, api_key):
         return cls.get(cls.api_key == api_key)
 
+    @classmethod
+    def all(cls, org):
+        return cls.select().where(cls.org == org)
+
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.email)
 
@@ -255,7 +261,7 @@ class User(ModelTimestampsMixin, BaseModel, UserMixin, PermissionsCheckMixin):
         return self.password_hash and pwd_context.verify(password, self.password_hash)
 
 
-class DataSource(BaseModel):
+class DataSource(BaseModel, BelongsToOrgMixin):
     SECRET_PLACEHOLDER = '--------'
 
     id = peewee.PrimaryKeyField()
@@ -288,10 +294,6 @@ class DataSource(BaseModel):
 
     def __unicode__(self):
         return self.name
-
-    @classmethod
-    def get_by_id_and_org(cls, org, model_id):
-        return cls.get(cls.id==model_id, cls.org==org)
 
     @property
     def configuration(self):
@@ -712,7 +714,7 @@ class AlertSubscription(ModelTimestampsMixin, BaseModel):
         return query.execute()
 
 
-class Dashboard(ModelTimestampsMixin, BaseModel):
+class Dashboard(ModelTimestampsMixin, BaseModel, BelongsToOrgMixin):
     id = peewee.PrimaryKeyField()
     org = peewee.ForeignKeyField(Organization, related_name="dashboards")
     slug = peewee.CharField(max_length=140, index=True)
@@ -776,10 +778,6 @@ class Dashboard(ModelTimestampsMixin, BaseModel):
     @classmethod
     def get_by_slug_and_org(cls, slug, org):
         return cls.get(cls.slug == slug, cls.org==org)
-
-    @classmethod
-    def get_by_id_and_org(cls, dashboard_id, org):
-        return cls.get(cls.id == dashboard_id, cls.org==org)
 
     @classmethod
     def recent(cls, org, user_id=None, limit=20):

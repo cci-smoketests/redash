@@ -1,6 +1,7 @@
 from flask import request
 from flask.ext.restful import Resource, abort
 from flask_login import current_user, login_required
+from peewee import DoesNotExist
 
 from redash import statsd_client
 
@@ -31,3 +32,9 @@ def require_fields(req, fields):
         if f not in req:
             abort(400)
 
+
+def get_object_or_404(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except DoesNotExist:
+        abort(404)
